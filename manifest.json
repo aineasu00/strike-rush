@@ -1,0 +1,19 @@
+{
+  "name": "Strike Rush",
+  "short_name": "Strike Rush",
+  "description": "Compagnon multijoueur temps réel pour parties de bowling.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0D0D0D",
+  "theme_color": "#0D0D0D",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

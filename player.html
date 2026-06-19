@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0D0D0D">
+  <meta name="description" content="Rejoignez Strike Rush et prédisez les lancers.">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/app.css">
+  <title>Strike Rush — Joueur</title>
+</head>
+<body class="phone">
+  <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+  <header class="mobile-header">
+    <a class="brand" href="./player.html"><span class="brand-mark">SR</span><b data-app-name>STRIKE RUSH</b></a>
+    <div class="credit-chip"><span>CRÉDITS</span><b id="creditsValue">1000</b></div>
+  </header>
+
+  <main class="phone-shell">
+    <section class="phone-view active" id="joinView">
+      <p class="eyebrow">BIENVENUE SUR LA PISTE</p>
+      <h1>ENTRE DANS<br><em>LA RUSH.</em></h1>
+      <form class="join-card glass" id="joinForm">
+        <label for="roomInput">Code de partie</label>
+        <input id="roomInput" name="room" minlength="6" maxlength="6" autocomplete="off" required placeholder="ABC123">
+        <label for="nicknameInput">Ton pseudo</label>
+        <input id="nicknameInput" name="nickname" minlength="3" maxlength="12" autocomplete="nickname" required placeholder="NEONKING">
+        <fieldset>
+          <legend>Choisis ton style</legend>
+          <div class="avatar-grid" id="avatarGrid"></div>
+        </fieldset>
+        <button class="primary-button" type="submit">REJOINDRE LA PARTIE</button>
+        <p class="form-error" id="joinError"></p>
+      </form>
+      <nav class="simple-menu" aria-label="Menu">
+        <button data-dialog="rulesDialog">RÈGLES</button>
+        <button data-dialog="statsDialog">CLASSEMENT PERSO</button>
+      </nav>
+    </section>
+
+    <section class="phone-view" id="waitingView">
+      <div class="waiting-orb">●</div>
+      <p class="eyebrow">TU ES CONNECTÉ</p>
+      <h2>ATTENDS LE<br>SIGNAL DE LA PISTE.</h2>
+      <div class="profile-card glass"><span id="playerAvatar">●</span><div><b id="playerName">JOUEUR</b><small>PRÊT À MISER</small></div></div>
+      <div class="quick-chat" id="waitingChat"></div>
+    </section>
+
+    <section class="phone-view" id="betView">
+      <div class="bet-topline"><div><p class="eyebrow">FRAME <span id="mobileFrame">1</span> / 10</p><small>PROCHAIN : <b id="mobileBowler">PISTE</b></small></div><div class="mobile-timer" id="mobileTimer">20</div></div>
+      <h2>TON PRONO ?</h2>
+      <div class="prediction-grid" id="predictionGrid">
+        <button data-prediction="0"><span>0</span><small>GOUTTIÈRE</small></button>
+        <button data-prediction="1-9"><span>1–9</span><small>QUILLES</small></button>
+        <button data-prediction="spare"><span>／</span><small>SPARE</small></button>
+        <button data-prediction="strike"><span>×</span><small>STRIKE</small></button>
+      </div>
+      <div class="stake-card glass">
+        <div><label for="stakeRange">TA MISE</label><output id="stakeOutput">100</output></div>
+        <input id="stakeRange" type="range" min="10" max="500" step="10" value="100">
+        <div class="stake-ticks"><span>10</span><span>250</span><span>500</span></div>
+      </div>
+      <button class="primary-button" id="confirmBetButton" disabled>CONFIRMER LA MISE</button>
+      <div class="power-bet locked" id="powerBet">
+        <button type="button" id="powerBetToggle">⚡ POWER BET ×5</button>
+        <select id="powerTarget" aria-label="Cible de la Power Bet" disabled></select>
+        <small>Débloquée après 3 bonnes prédictions</small>
+      </div>
+    </section>
+
+    <section class="phone-view" id="lockedView">
+      <p class="eyebrow">MISE VERROUILLÉE</p>
+      <div class="locked-pick glass"><span id="lockedPrediction">×</span><small>TA PRÉDICTION</small><b><span id="lockedStake">100</span> CRÉDITS</b></div>
+      <h2>REGARDE<br>LA PISTE.</h2>
+      <p id="lockedMessage">Le résultat arrive sur l’écran central.</p>
+      <div class="quick-chat" id="gameChat"></div>
+    </section>
+
+    <section class="phone-view" id="resultView">
+      <div class="result-icon" id="resultIcon">✓</div>
+      <p class="eyebrow" id="resultEyebrow">BIEN VU</p>
+      <h2 id="resultHeading">PRÉDICTION<br>PARFAITE.</h2>
+      <div class="reward-card glass"><span>GAIN</span><b id="rewardValue">+200</b><small id="streakValue">STREAK ×2</small></div>
+      <button class="primary-button" id="continueButton">CONTINUER</button>
+    </section>
+
+    <section class="phone-view" id="finalView">
+      <p class="eyebrow">10 FRAMES TERMINÉES</p>
+      <h2>TA PARTIE<br>EN CHIFFRES.</h2>
+      <div class="personal-summary glass" id="personalSummary"></div>
+      <a class="primary-button button-link" href="./player.html">QUITTER LA PARTIE</a>
+    </section>
+  </main>
+
+  <dialog id="rulesDialog"><button class="dialog-close" aria-label="Fermer">×</button><h2>RÈGLES EXPRESS</h2><ol><li>Tu as 20 secondes pour prédire le prochain lancer.</li><li>Mise des crédits sur 0, 1–9, spare ou strike.</li><li>Les bonnes séries multiplient tes gains : ×2, ×3, puis ×5.</li><li>À 3 bonnes réponses, la Power Bet se débloque.</li></ol></dialog>
+  <dialog id="statsDialog"><button class="dialog-close" aria-label="Fermer">×</button><h2>TES STATS</h2><div id="savedStats"></div></dialog>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="./CONFIG.js"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" defer></script>
+  <script src="./js/realtime.js" defer></script>
+  <script src="./js/player.js" defer></script>
+</body>
+</html>

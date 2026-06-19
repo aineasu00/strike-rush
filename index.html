@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0D0D0D">
+  <meta name="description" content="Strike Rush — écran central de bowling multijoueur.">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/app.css">
+  <title>Strike Rush — Tablette</title>
+</head>
+<body class="tablet">
+  <div class="ambient" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Accueil Strike Rush">
+      <span class="brand-mark">SR</span>
+      <span><b data-app-name>STRIKE RUSH</b><small data-bowling-name>NEON BOWL</small></span>
+    </a>
+    <div class="top-actions">
+      <span class="connection-pill" id="connectionStatus">MODE DÉMO</span>
+      <button class="icon-button" id="soundToggle" aria-label="Activer le son">♫</button>
+      <button class="icon-button" id="fullscreenButton" aria-label="Plein écran">⛶</button>
+    </div>
+  </header>
+
+  <main class="tablet-shell">
+    <section class="screen active" id="lobbyScreen">
+      <div class="lobby-copy">
+        <p class="eyebrow">PISTE PRÊTE · CODE <strong id="roomCode">------</strong></p>
+        <h1>SCANE.<br><em>MISE.</em><br>VIBRE.</h1>
+        <p>Prédisez chaque lancer, construisez votre streak et prenez la tête du podium.</p>
+        <div class="player-count"><span id="playerCount">0</span><small>/ 9 joueurs connectés</small></div>
+        <div class="player-bubbles" id="playerBubbles"></div>
+      </div>
+      <div class="qr-card glass">
+        <div class="qr-frame"><img id="qrImage" alt="QR code pour rejoindre la partie"></div>
+        <p>SCANNE POUR REJOINDRE</p>
+        <a id="joinUrl" href="./player.html">player.html</a>
+        <button class="primary-button" id="startGameButton">LANCER LA PARTIE</button>
+      </div>
+      <div class="dancing-pins" aria-hidden="true">
+        <span>♟</span><span>♟</span><span>♟</span><span>♟</span><span>♟</span>
+      </div>
+    </section>
+
+    <section class="screen" id="gameScreen">
+      <div class="game-grid">
+        <div class="game-main">
+          <div class="round-heading">
+            <div><p class="eyebrow">FRAME <span id="frameNumber">1</span> / 10</p><h2 id="roundTitle">PRÊTS À MISER ?</h2></div>
+            <div class="timer" id="timer"><span>20</span><small>SEC</small></div>
+          </div>
+          <div class="hype-wrap">
+            <div class="hype-label"><span>HYPE DE LA PISTE</span><b id="hypeValue">24%</b></div>
+            <div class="hype-track"><i id="hypeBar"></i></div>
+          </div>
+          <div class="prediction-board glass">
+            <div class="prediction-hero">
+              <span class="ball-orbit">●</span>
+              <div><small>PROCHAIN LANCER</small><strong id="nextBowler">JOUEUR LIBRE</strong><p id="betStatus">En attente de la nouvelle frame</p></div>
+            </div>
+            <div class="bet-distribution" id="betDistribution">
+              <span style="--value:18%"><i></i><b>0</b></span>
+              <span style="--value:34%"><i></i><b>1–9</b></span>
+              <span style="--value:48%"><i></i><b>SPARE</b></span>
+              <span style="--value:72%"><i></i><b>STRIKE</b></span>
+            </div>
+          </div>
+          <div class="host-controls glass">
+            <select id="bowlerSelect" aria-label="Prochain joueur">
+              <option value="Joueur libre">Joueur libre</option>
+            </select>
+            <button class="primary-button" id="newFrameButton">NOUVELLE FRAME</button>
+            <div class="result-control">
+              <label for="pinsInput">Quilles tombées</label>
+              <input id="pinsInput" type="number" min="0" max="10" value="10" inputmode="numeric">
+              <select id="resultType" aria-label="Type de résultat">
+                <option value="pins">Quilles</option>
+                <option value="spare">Spare</option>
+                <option value="strike">Strike</option>
+              </select>
+              <button class="secondary-button" id="submitResultButton">RÉSULTAT</button>
+            </div>
+          </div>
+        </div>
+        <aside class="leaderboard glass">
+          <div class="panel-title"><span>CLASSEMENT LIVE</span><small>CRÉDITS</small></div>
+          <ol id="leaderboardList"><li class="empty-state">Les joueurs apparaîtront ici.</li></ol>
+          <div class="chat-feed" id="chatFeed"><span>Le chat rapide s’affichera ici.</span></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" id="podiumScreen">
+      <p class="eyebrow">PARTIE TERMINÉE</p>
+      <h2>LES ROIS DE LA PISTE</h2>
+      <div class="podium" id="podium"></div>
+      <div class="final-actions">
+        <button class="primary-button" id="newLobbyButton">NOUVEAU LOBBY</button>
+        <p>Le lobby actuel sera supprimé et un nouveau QR code généré.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="strike-flash" id="strikeFlash" aria-hidden="true"><span>STRIKE!</span></div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="./CONFIG.js"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" defer></script>
+  <script src="./js/realtime.js" defer></script>
+  <script src="./js/tablet.js" defer></script>
+</body>
+</html>
