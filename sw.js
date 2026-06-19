@@ -1,4 +1,4 @@
-const CACHE = "strike-rush-v1";
+const CACHE = "strike-rush-v2";
 const APP_SHELL = [
   "./",
   "./index.html",

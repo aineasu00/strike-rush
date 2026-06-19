@@ -60,22 +60,24 @@
       this.role = role;
       this.roomCode = "";
       this.clientId = sessionStorage.getItem("strike-rush-client-id") || id();
+      this.playerToken = sessionStorage.getItem("strike-rush-player-token") || id();
       sessionStorage.setItem("strike-rush-client-id", this.clientId);
+      sessionStorage.setItem("strike-rush-player-token", this.playerToken);
       this.listeners = new Map();
-      this.socket = null;
+      this.supabaseClient = null;
+      this.supabaseChannel = null;
+      this.hostToken = sessionStorage.getItem("strike-rush-host-token") || id();
       this.local = null;
-      this.mode = config.realtime.mode === "socket" && typeof window.io === "function" ? "socket" : "local";
+      this.mode = config.realtime.mode === "supabase" && window.supabase?.createClient ? "supabase" : "local";
 
-      if (this.mode === "socket") {
-        this.socket = window.io(config.realtime.socketUrl, {
-          transports: ["websocket", "polling"],
-          timeout: 7000
-        });
-        ["state", "error-message", "joined", "chat"].forEach((event) => {
-          this.socket.on(event, (payload) => this.emitLocal(event, payload));
-        });
-        this.socket.on("connect", () => this.emitLocal("connection", { online: true, mode: "socket" }));
-        this.socket.on("disconnect", () => this.emitLocal("connection", { online: false, mode: "socket" }));
+      if (this.mode === "supabase") {
+        sessionStorage.setItem("strike-rush-host-token", this.hostToken);
+        this.supabaseClient = window.supabase.createClient(
+          config.realtime.supabaseUrl,
+          config.realtime.supabaseAnonKey,
+          { auth: { persistSession: false, autoRefreshToken: false } }
+        );
+        queueMicrotask(() => this.emitLocal("connection", { online: true, mode: "supabase" }));
       } else {
         this.local = new LocalTransport((message) => {
           if (message.type === "state" && message.state.code === this.roomCode) this.emitLocal("state", clone(message.state));
@@ -93,6 +95,40 @@
 
     emitLocal(event, payload) {
       (this.listeners.get(event) || []).forEach((callback) => callback(payload));
+    }
+
+    async rpc(name, params) {
+      const { data, error } = await this.supabaseClient.rpc(name, params);
+      if (error) {
+        const message = error.code === "PGRST202"
+          ? "Configuration Supabase incomplète : exécutez supabase/schema.sql."
+          : error.message || "Erreur de synchronisation.";
+        this.emitLocal("error-message", message);
+        return null;
+      }
+      return data;
+    }
+
+    subscribe(code) {
+      if (this.mode !== "supabase") return;
+      if (this.supabaseChannel) this.supabaseClient.removeChannel(this.supabaseChannel);
+      this.supabaseChannel = this.supabaseClient
+        .channel(`strike-rush:${code}:${this.clientId}`)
+        .on("postgres_changes", {
+          event: "*",
+          schema: "public",
+          table: "strike_rush_rooms",
+          filter: `code=eq.${code}`
+        }, (payload) => {
+          if (payload.eventType === "DELETE") return;
+          if (payload.new?.state) this.emitLocal("state", clone(payload.new.state));
+        })
+        .subscribe((status) => {
+          const online = status === "SUBSCRIBED";
+          if (online || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            this.emitLocal("connection", { online, mode: "supabase" });
+          }
+        });
     }
 
     readRoom(code = this.roomCode) {
@@ -114,30 +150,52 @@
       return room;
     }
 
-    createRoom() {
+    async createRoom() {
       const code = generateCode();
       this.roomCode = code;
-      if (this.mode === "socket") {
-        this.socket.emit("host:create", { code });
+      if (this.mode === "supabase") {
+        const state = await this.rpc("strike_rush_create_room", {
+          p_code: code,
+          p_host_token: this.hostToken
+        });
+        if (!state) return null;
+        this.subscribe(code);
+        this.emitLocal("state", clone(state));
       } else {
         this.writeRoom(emptyRoom(code));
       }
       return code;
     }
 
-    watchRoom(code) {
+    async watchRoom(code) {
       this.roomCode = cleanCode(code);
-      if (this.mode === "socket") this.socket.emit("room:watch", { code: this.roomCode });
-      else {
+      if (this.mode === "supabase") {
+        this.subscribe(this.roomCode);
+        const state = await this.rpc("strike_rush_get_room", { p_code: this.roomCode });
+        if (state) this.emitLocal("state", clone(state));
+      } else {
         const room = this.readRoom();
         if (room) this.emitLocal("state", clone(room));
       }
     }
 
-    joinRoom(code, profile) {
+    async joinRoom(code, profile) {
       this.roomCode = cleanCode(code);
-      const payload = { code: this.roomCode, clientId: this.clientId, profile };
-      if (this.mode === "socket") return this.socket.emit("player:join", payload);
+      if (this.mode === "supabase") {
+        const room = await this.rpc("strike_rush_join", {
+          p_code: this.roomCode,
+          p_client_id: this.clientId,
+          p_player_token: this.playerToken,
+          p_nickname: profile.nickname,
+          p_avatar: profile.avatar,
+          p_color: profile.color
+        });
+        if (!room) return;
+        this.subscribe(this.roomCode);
+        this.emitLocal("joined", { clientId: this.clientId, room: clone(room) });
+        this.emitLocal("state", clone(room));
+        return;
+      }
       const room = this.readRoom();
       if (!room) return this.emitLocal("error-message", "Partie introuvable ou expirée.");
       if (room.phase !== "lobby") return this.emitLocal("error-message", "La partie a déjà commencé.");
@@ -159,8 +217,17 @@
       this.emitLocal("joined", { clientId: this.clientId, room: clone(room) });
     }
 
-    hostAction(action, payload = {}) {
-      if (this.mode === "socket") return this.socket.emit(`host:${action}`, { code: this.roomCode, ...payload });
+    async hostAction(action, payload = {}) {
+      if (this.mode === "supabase") {
+        const state = await this.rpc("strike_rush_host_action", {
+          p_code: this.roomCode,
+          p_host_token: this.hostToken,
+          p_action: action,
+          p_payload: payload
+        });
+        if (state) this.emitLocal("state", clone(state));
+        return state;
+      }
       const room = this.readRoom();
       if (!room) return;
       if (action === "start") room.phase = "waiting";
@@ -207,9 +274,20 @@
       this.writeRoom(room);
     }
 
-    placeBet(prediction, stake, power = false, target = "") {
-      const payload = { code: this.roomCode, clientId: this.clientId, prediction, stake: Number(stake), power, target };
-      if (this.mode === "socket") return this.socket.emit("player:bet", payload);
+    async placeBet(prediction, stake, power = false, target = "") {
+      if (this.mode === "supabase") {
+        const state = await this.rpc("strike_rush_place_bet", {
+          p_code: this.roomCode,
+          p_client_id: this.clientId,
+          p_player_token: this.playerToken,
+          p_prediction: prediction,
+          p_stake: Number(stake),
+          p_power: Boolean(power),
+          p_target: target
+        });
+        if (state) this.emitLocal("state", clone(state));
+        return;
+      }
       const room = this.readRoom();
       const player = room?.players[this.clientId];
       if (!room || !player || room.phase !== "betting" || now() >= room.bettingEndsAt) return this.emitLocal("error-message", "La fenêtre de mise est fermée.");
@@ -224,10 +302,19 @@
       this.writeRoom(room);
     }
 
-    sendChat(message) {
+    async sendChat(message) {
       const allowed = ["Strike !", "Oh non...", "Il est chaud", "Bluffeur"];
       if (!allowed.includes(message)) return;
-      if (this.mode === "socket") return this.socket.emit("player:chat", { code: this.roomCode, clientId: this.clientId, message });
+      if (this.mode === "supabase") {
+        const state = await this.rpc("strike_rush_chat", {
+          p_code: this.roomCode,
+          p_client_id: this.clientId,
+          p_player_token: this.playerToken,
+          p_message: message
+        });
+        if (state) this.emitLocal("state", clone(state));
+        return;
+      }
       const room = this.readRoom();
       const player = room?.players[this.clientId];
       if (!room || !player) return;

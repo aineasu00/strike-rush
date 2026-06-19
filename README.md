@@ -41,46 +41,26 @@ Le projet démarre en `mode: "local"` dans `CONFIG.js`. Ce mode utilise `Broadca
 
 Le mode local sert uniquement à la démonstration. Pour des téléphones physiques différents, activez Socket.IO.
 
-## Déploiement du temps réel sur Render
+## Temps réel avec Supabase
 
-Le serveur ne stocke aucune donnée en base. Les lobbies vivent uniquement en mémoire et sont supprimés après 24 heures au maximum. Un redémarrage du service les supprime immédiatement.
+La version publique utilise Supabase Realtime. Elle fonctionne entre différents Wi-Fi et réseaux mobiles.
 
-1. Le dépôt public est disponible sur `https://github.com/aineasu00/strike-rush`.
-2. Utilisez le Blueprint Render :
+1. Ouvrez le projet Supabase.
+2. Ouvrez **SQL Editor > New query**.
+3. Copiez tout le contenu de `supabase/schema.sql`.
+4. Cliquez sur **Run** une seule fois.
+5. Rechargez la tablette Strike Rush et générez un nouveau lobby.
 
-   ```text
-   https://dashboard.render.com/blueprint/new?repo=https://github.com/aineasu00/strike-rush
-   ```
+La clé `anon` présente dans `CONFIG.js` est une clé publique prévue pour le navigateur. Ne placez jamais une clé `service_role` dans ce dépôt.
 
-   ou choisissez manuellement **New > Web Service**.
-3. Connectez le dépôt.
-4. Configurez :
-   - **Root Directory** : `server`
-   - **Build Command** : `npm install`
-   - **Start Command** : `npm start`
-   - **Instance Type** : Free
-5. Ajoutez la variable `FRONTEND_ORIGIN` avec l’origine exacte de GitHub Pages, par exemple :
+Le schéma :
 
-   ```text
-   https://votre-compte.github.io
-   ```
-
-6. Déployez et copiez l’URL HTTPS du service, par exemple :
-
-   ```text
-   https://strike-rush-realtime.onrender.com
-   ```
-
-7. Vérifiez `CONFIG.js` :
-
-   ```js
-   realtime: {
-     mode: "socket",
-     socketUrl: "https://strike-rush-realtime-aineasu00.onrender.com"
-   }
-   ```
-
-> Le plan gratuit Render peut mettre le service en veille. Pour une exploitation commerciale continue, utilisez un service sans mise en veille ou un petit serveur Node dédié.
+- limite chaque lobby à 9 joueurs ;
+- valide les mises et calcule les gains dans PostgreSQL ;
+- protège l’hôte et chaque joueur avec des jetons privés hachés ;
+- limite le chat aux phrases autorisées ;
+- expire les parties après 24 heures ;
+- diffuse les changements avec Supabase Realtime.
 
 ## Déploiement du frontend sur GitHub Pages
 
@@ -107,8 +87,9 @@ Toutes les valeurs principales sont dans `CONFIG.js` :
 - `game.startingCredits` : crédits de départ ;
 - `game.bettingSeconds` : durée de mise ;
 - `game.totalFrames` : nombre de frames ;
-- `realtime.mode` : `local` ou `socket` ;
-- `realtime.socketUrl` : URL du serveur Node.
+- `realtime.mode` : `supabase` ou `local` ;
+- `realtime.supabaseUrl` : URL publique du projet Supabase ;
+- `realtime.supabaseAnonKey` : clé publique `anon`.
 
 Les constantes de sécurité du serveur sont également définies au début de `server/index.js`. Si vous modifiez les limites de mise ou de joueurs dans `CONFIG.js`, reportez les mêmes valeurs côté serveur.
 

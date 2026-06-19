@@ -18,9 +18,10 @@ window.STRIKE_RUSH_CONFIG = Object.freeze({
     maxBet: 500
   },
   realtime: {
-    // Utilisez "local" uniquement pour tester plusieurs onglets sur un même appareil.
-    mode: "socket",
-    socketUrl: "https://strike-rush-realtime-aineasu00.onrender.com"
+    // "supabase" fonctionne entre réseaux différents. "local" sert aux tests hors ligne.
+    mode: "supabase",
+    supabaseUrl: "https://mlvdutlvcadoifojoxzh.supabase.co",
+    supabaseAnonKey: "sb_publishable_WQRDRw-Mrq6rT69Xp1OQaQ_-ikRJkVU"
   },
   ui: {
     musicMutedByDefault: true,

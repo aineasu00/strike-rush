@@ -34,8 +34,9 @@
     };
   }
 
-  function setupRoom() {
-    const code = rt.createRoom();
+  async function setupRoom() {
+    const code = await rt.createRoom();
+    if (!code) return;
     $("#roomCode").textContent = code;
     const url = buildJoinUrl(code);
     $("#joinUrl").href = url;
@@ -137,10 +138,10 @@
   $("#resultType").addEventListener("change", ({ target }) => {
     if (target.value === "strike") $("#pinsInput").value = 10;
   });
-  $("#newLobbyButton").addEventListener("click", () => {
-    rt.hostAction("new-lobby");
+  $("#newLobbyButton").addEventListener("click", async () => {
+    await rt.hostAction("new-lobby");
     show("lobbyScreen");
-    setupRoom();
+    await setupRoom();
   });
   $("#fullscreenButton").addEventListener("click", () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
   $("#soundToggle").addEventListener("click", ({ currentTarget }) => {
