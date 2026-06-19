@@ -41,7 +41,7 @@ returns void language sql security definer set search_path = public
 as $$ delete from public.strike_rush_rooms where expires_at <= now() $$;
 
 create or replace function public.strike_rush_create_room(p_code text, p_host_token uuid)
-returns jsonb language plpgsql security definer set search_path = public
+returns jsonb language plpgsql security definer set search_path = public, extensions
 as $$
 declare v_state jsonb;
 begin
@@ -65,7 +65,7 @@ as $$ select state from public.strike_rush_rooms where code = upper(p_code) and 
 
 create or replace function public.strike_rush_join(
   p_code text, p_client_id text, p_player_token uuid, p_nickname text, p_avatar text, p_color text
-) returns jsonb language plpgsql security definer set search_path = public
+) returns jsonb language plpgsql security definer set search_path = public, extensions
 as $$
 declare v_state jsonb; v_player jsonb;
 begin
@@ -95,7 +95,7 @@ end $$;
 
 create or replace function public.strike_rush_host_action(
   p_code text, p_host_token uuid, p_action text, p_payload jsonb default '{}'::jsonb
-) returns jsonb language plpgsql security definer set search_path = public
+) returns jsonb language plpgsql security definer set search_path = public, extensions
 as $$
 declare
   v_state jsonb; v_frame int; v_type text; v_pins int; v_player_id text;
@@ -169,7 +169,7 @@ end $$;
 create or replace function public.strike_rush_place_bet(
   p_code text, p_client_id text, p_player_token uuid, p_prediction text, p_stake int,
   p_power boolean default false, p_target text default ''
-) returns jsonb language plpgsql security definer set search_path = public
+) returns jsonb language plpgsql security definer set search_path = public, extensions
 as $$
 declare v_state jsonb; v_player jsonb; v_stake int; v_power boolean; v_bet jsonb;
 begin
@@ -205,7 +205,7 @@ end $$;
 create or replace function public.strike_rush_chat(
   p_code text, p_client_id text, p_player_token uuid, p_message text
 )
-returns jsonb language plpgsql security definer set search_path = public
+returns jsonb language plpgsql security definer set search_path = public, extensions
 as $$
 declare v_state jsonb; v_player jsonb; v_chats jsonb; v_last jsonb;
 begin
